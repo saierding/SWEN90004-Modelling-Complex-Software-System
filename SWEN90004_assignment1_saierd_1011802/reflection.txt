@@ -1,0 +1,20 @@
+First of all, this assignment is used to help us study and deepen our understanding of the monitor in Java. Secondly, it  has also deepened our familiarity with the basic syntax of Java.
+To design the monitor and make the whole project run I first list the tasks of all the characters separately. For example, KING ARTHUR: (enter the hall -> begin meeting -> end meeting -> exit the hall); KNIGHT:(enter the hall -> sit -> release quest -> acquire quest -> stand -> exit the hall -> set off -> complete quest -> enter the hall -> etc); AGENDA:(add new quest -> remove complete quest). 
+
+Then for each object, list all the conditions that need to be monitored.
+For AGENDA: 
+Firstly, I monitor that the capacity of the agenda is 5, if the quest list is more than 5, I stop the thread and wait until a quest is out. 
+Secondly, I monitor that the capacity of the agenda must not be null if the system wants to remove quest from the complete agenda. 
+For KIGHT: 
+Monitor that the knight can not enter after the king enters the hall.
+Monitor that the knight can not leave before the king exits the hall.
+Monitor that if the quest list is empty, the knight can not acquire quest.
+Monitor that if the quest list is more than 5, the knight can not release quest.
+For KING ARTHUR:
+Monitor that the meeting can not begin unless every knight in the hall sits down.
+Monitor that the meeting can not end unless every knight in the hall stands from the round table.
+Monitor that the king can not exit unless the meeting ends.
+
+In the end, I completed the simulator as required, and many problems occurred during the process. At first I did not limit the capacity of the quest in the agenda. Later, I found that the new agenda has been added rapidly. Then I tried to sleep some time in the addnew function, but it had no effect. I found that sleep in the function is only useful for this thread , But there will still be other threads added. So it doesn’t work at all and then I tried to monitor the capacity of the agenda list. And when writing the monitor which is to check if all of the knight is seated, at the beginning I tried to superimpose the state based on whether the knight was sitting or not to determine whether every knight was actually seated. But there always existed some logical error. As a solution, I used the hashmap<knight, isseated> to store the states of the knight. Finally I solve this problem. 
+
+The difficulty of this project is that there are many minor places that we need to pay attention to, so if we ignore a small place, the entire simulator will crash. From this project, I deepened my understanding of the monitor, and realized that I must pay more attention to the monitor when designing multithreaded concurrent programs.
