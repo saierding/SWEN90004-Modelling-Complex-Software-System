@@ -1,0 +1,29 @@
+# Name:          Saier Ding
+# Student ID:    1011802
+# Login:	 saierd
+# Email: 	 saierd@student.unimelb.edu.au
+
+1. What problems did you find in your original model?
+In my original design model, I only analyzed the actions of the knight and the king Arthur according to the requirements of the specification, and did not consider more possible deadlocks or security issues. At the same time, in the design of my first assignment(1a), I didn't design it completely according to the requirements. In my design, the knight have to set off to complete the quest when the king exit the hall, so there will be no situation where the knight stands up and stays in the hall without completing the quest. In the first assignment(1a), my focus was on whether the king Arthur would enter the hall and if there was no knight, would there be a meeting where nobody was there? In my original model(assignment 1b), Through the deadlock/error checking mechanism of the LTSA, I found that a deadlock situation occurred, that is, when the knight acquired the quest and stood up, he did not exit the hall, and at the same time, the king exited the hall and entered again. In this situation the king was waiting for the knight to sit down for a meeting, but the knight could not sit. 
+Here is this trace:
+Trace to DEADLOCK:
+	produce_newQuest
+	produce_newQuest
+	k.1.knight_enter
+	king_enter
+	k.1.knight_mingling
+	k.1.knight_sit
+	start_meeting
+	k.1.knight_acquire_quest
+	produce_newQuest
+	k.1.knight_stand
+	end_meeting
+	king_exit
+	king_enter
+
+2. What was the reasoning behind the changes you suggested in your modified model?
+After finding this deadlock/error, the first solution I thought of was to connect the king Arthur exit the hall and the Knight exit the hall, such as king_exit -> knight[i]_exit. Later, after implementing, it was found that this would allow the king Arthur to form a lock after exit the hall, and the knights could not choose to exit the hall in parallel. This makes a difference from the task requirements.
+Then I thought I could let the king Arthur wait for the knight. If there are knights in the hall who have not exited the hall, then the king Arthur cannot enter the hall. The king Arthur will not re-enter the hall until all the knights who finished the meeting last time have exited the hall. To achieve this goal, I added an additional KnightComplete attribute to the original GreatHall class. When the knight acquires the quest, the attribute is increased by one, and when the knight releases the quest, the attribute is reduced by one. The king Arthur will judge whether this attribute is 0 before entering the hall. If it is not 0, the king Arthur will not enter the hall.
+
+3. The gains from this assignment.
+From this assignment, I not only learned a new method to find the vulnerabilities of the synchronization program but also learned to carefully analyze all the situations before writing the program to prevent the formation of deadlocks or other errors, because the cost of modification when designing the program is the lowest. Later, if you encounter problems during development, it will be difficult to modify and the cost will be very high.

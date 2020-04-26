@@ -1,0 +1,236 @@
+// Student ID: 1011802
+// Login:      saierd
+// Email:      saierd@student.unimelb.student.edu.au
+
+
+const KNIGHT_COUNT = 2					// The num of total knights
+const AGENDA_NEW_COUNT = 2              // The num of new agenda
+const AGENDA_COMPLETED_COUNT = 2        // The num of complete agenda
+range KNIGHT_NUM = 1..KNIGHT_COUNT
+const False = 0
+const True = 1
+range Bool = False..True
+
+
+// Producer produces new quest at every time.
+PRODUCER = (produce_newQuest -> PRODUCER).
+
+
+/*
+*  The new agenda   
+*  AgendaNew stores new quests from producer and assigns the quest to a knight.
+*  If a new quest has been produced, the capacity of AgendaNew is added by one.
+*  If a new quest has been assigned, the capacity of AgendaNew is substracted by one.
+*/
+AGENDANEW (N = AGENDA_NEW_COUNT) = AGENDA_NEW[0],
+AGENDA_NEW [i:0..N] = 
+	( when (i < N) produce_newQuest -> AGENDA_NEW[i+1]
+	| when (i > 0) assign_newQuest -> AGENDA_NEW[i-1]		
+	)/{assign_newQuest/knight_acquire_quest}.
+
+
+// Comsumer remove completed quest at every time.
+CONSUMER = (remove_completedQuest -> CONSUMER).
+
+
+/*
+*  The complete agenda
+*  AgendaCompleted stores completed quests and remove the completed quest.
+*  If the number of quests in AgendaCompleted is low than the capacity of AgendaCompleted, 
+*  knights can release quests.
+*  If the number of quests in AgendaCompleted is higher than zero,
+*  AgendaCompleted can remove the quest.
+*/
+AGENDACOMPLETED (N = AGENDA_COMPLETED_COUNT) = AGENDA_COMPLETED[0],
+AGENDA_COMPLETED [i:0..N] = 
+	( when (i < N) knight_release_quest -> AGENDA_COMPLETED[i+1]
+	| when (i > 0) remove_completedQuest -> AGENDA_COMPLETED[i-1]   
+	).
+
+
+/*
+*  The GreatHall
+*  GREATHALL controls the meeting and the actions during the meeting
+*  If king doesn't enter the hall and the number of knight which is in the hall is lower than knight buffer,
+*  knight can enter the hall.
+*  If the number of knight which is sited is lower than the number of knight which is in the hall, 
+*  and the number of knight which is sited is lower than knight buffer,
+*  knight can sit in the hall.
+*  If king doesn't enter the hall, king can enter the hall.
+*  If king enters the hall and the number of knight which is sited is equal to knight buffer,
+*  king can start meeting.
+*  If meeting is starting, knight can acquire the quest or release the quest.
+*  If meeting is starting and the number of knight which is sited is higher than zero,
+*  knight can stand.
+*  If meeting is starting and the number of knight which is sited is equal to zero,
+*  king can end meeting and exit the hall.
+*  If king exits the hall and the number of knight which is in the hall is higher than zero,
+*  knight can exit the hall.
+*/
+GREATHALL = GREAT_HALL[0][0][False][False],
+GREAT_HALL[knightEnter:0..KNIGHT_COUNT][knightSit:0..KNIGHT_COUNT][kingEnter:Bool][startMeeting:Bool] = 
+	( when (kingEnter == False && knightEnter < KNIGHT_COUNT) 									
+	  knight_enter -> GREAT_HALL[knightEnter+1][knightSit][kingEnter][startMeeting]					
+	| when (knightEnter > knightSit && knightSit < KNIGHT_COUNT)
+	  knight_sit -> GREAT_HALL[knightEnter][knightSit+1][kingEnter][startMeeting]    
+	| when (kingEnter == False)
+	  king_enter -> GREAT_HALL[knightEnter][knightSit][True][startMeeting]
+	| when (kingEnter == True && knightEnter == knightSit)
+	  start_meeting -> GREAT_HALL[knightEnter][knightSit][kingEnter][True]
+	| when (startMeeting == True)
+	  knight_acquire_quest -> GREAT_HALL[knightEnter][knightSit][kingEnter][startMeeting]
+	| when (startMeeting == True)
+	  knight_release_quest -> GREAT_HALL[knightEnter][knightSit][kingEnter][startMeeting]			
+	| when (startMeeting == True && knightSit > 0)
+	  knight_stand -> GREAT_HALL[knightEnter][knightSit-1][kingEnter][startMeeting]
+	| when (startMeeting == True && knightSit == 0)
+	  end_meeting -> king_exit -> GREAT_HALL[knightEnter][knightSit][False][False]
+	| when (kingEnter == False && knightEnter > 0)
+	  knight_exit -> GREAT_HALL[knightEnter-1][knightSit][kingEnter][startMeeting]
+	).
+
+
+/*
+*  Knight
+*  Knight and its lifecycle.
+*/
+KNIGHT = KNIGHT[False],
+KNIGHT[completed_quest:Bool] = 
+	( when (completed_quest == False)
+	  knight_enter ->
+	  knight_mingling ->
+	  knight_sit ->
+	  knight_acquire_quest ->
+	  knight_stand ->
+	  knight_exit ->
+	  knight_set_off_to_complete_quest ->
+	  knight_complete_quest -> KNIGHT[True]
+	| when (completed_quest == True)
+	  knight_enter ->
+	  knight_mingling ->
+	  knight_sit ->
+	  knight_release_quest ->
+	  knight_acquire_quest ->
+	  knight_stand ->
+      knight_exit ->
+	  knight_set_off_to_complete_quest ->
+	  knight_complete_quest -> KNIGHT[True]
+	).
+
+
+/*
+* King
+* King Auther and its lifecycle.
+*/
+
+KING = ( king_enter ->
+		 start_meeting ->
+		 end_meeting ->
+		 king_exit -> KING
+		).
+
+
+/*
+* The main composite process 
+*/
+||MAIN = (  PRODUCER
+		 || AGENDANEW  
+		 || CONSUMER
+		 || AGENDACOMPLETED
+		 || GREATHALL
+		 || k[i:1..KNIGHT_COUNT]:KNIGHT
+	     || KING
+		 )/{k[i:1..KNIGHT_COUNT].knight_enter/knight_enter,
+			k[i:1..KNIGHT_COUNT].knight_mingling/knight_mingling,
+			k[i:1..KNIGHT_COUNT].knight_sit/knight_sit,
+			k[i:1..KNIGHT_COUNT].knight_release_quest/knight_release_quest,
+			k[i:1..KNIGHT_COUNT].knight_acquire_quest/knight_acquire_quest,
+			k[i:1..KNIGHT_COUNT].knight_stand/knight_stand,
+			k[i:1..KNIGHT_COUNT].knight_exit/knight_exit,
+			k[i:1..KNIGHT_COUNT].knight_acquire_quest/assign_newQuest}.
+
+
+// ---------Check Safety and Liveness Properties----------
+
+
+/*
+*  Check whether king enter the hall before exit the hall.
+*/
+property SAFE_ACTUATOR_KING = 
+	( king_enter -> king_exit -> SAFE_ACTUATOR_KING
+	).
+
+
+/*
+*  Check whether king start meeting before end meeting.
+*/
+property SAFE_ACTUATOR_MEETING = 
+	( start_meeting -> end_meeting -> SAFE_ACTUATOR_MEETING
+	).
+
+
+/*
+*  Check whether knight enter the hall before exit the hall.
+*/
+property SAFE_ACTUATOR_KNIGHT = 
+	( knight_enter -> knight_exit -> SAFE_ACTUATOR_KNIGHT
+	).
+
+
+/* 
+*  Check whether agendanew will produce new quest when higher than buffer,
+*  and check whether agendanew will assign new quest when lower than zero.
+*/
+property SAFE_ACTUATOR_AGENDANEW (N = AGENDA_NEW_COUNT) = AGENDA_NEW[0],
+AGENDA_NEW [i:0..N] = 
+	( when (i < N) produce_newQuest -> AGENDA_NEW[i+1]
+	| when (i > 0) k[KNIGHT_NUM].knight_acquire_quest-> AGENDA_NEW[i-1]		
+	)/{assign_newQuest/knight_acquire_quest}.
+
+
+/* 
+*  Check whether agendacompleted will remove completed quest when lower than zero,
+*  and check whether agendacompleted will release completed quest when higher than buffer.
+*/
+property SAFE_ACTUATOR_AGENDACOMPLETED (N = AGENDA_COMPLETED_COUNT) = AGENDA_COMPLETED[0],
+AGENDA_COMPLETED [i:0..N] = 
+	( when (i < N) k[KNIGHT_NUM].knight_release_quest -> AGENDA_COMPLETED[i+1]
+	| when (i > 0) remove_completedQuest -> AGENDA_COMPLETED[i-1]   
+	).
+
+
+/* 
+*  Composite as CHECK_MAIN.
+*/
+||CHECK_MAIN = 
+	( MAIN 
+	|| SAFE_ACTUATOR_KING
+	|| SAFE_ACTUATOR_MEETING 
+	|| SAFE_ACTUATOR_AGENDANEW
+	|| SAFE_ACTUATOR_AGENDACOMPLETED
+	|| k[i:1..KNIGHT_COUNT]:SAFE_ACTUATOR_KNIGHT 
+	).
+
+
+/* 
+*  Check whether all the actions of knights can be eventually executed.
+*/
+progress CHECK_KNIGHT_LIVENESS[i:1..KNIGHT_COUNT] =
+	{k[i].knight_enter,
+	 k[i].knight_mingling,
+	 k[i].knight_sit,
+	 k[i].knight_acquire_quest,
+	 k[i].knight_stand,
+	 k[i].knight_exit,
+	 k[i].knight_set_off_to_complete_quest,
+	 k[i].knight_complete_quest}
+
+
+/* 
+*  Check whether all the actions of king can be eventually executed.
+*/
+progress CHECK_KING_LIVENESS = 
+	{king_enter,
+	 start_meeting,
+	 end_meeting,
+	 king_exit}
