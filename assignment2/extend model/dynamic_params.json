@@ -1,0 +1,3 @@
+{"max_jailed_term": 30, "government_legitimacy": 0.50, "movement": true, "frame_interval": 0.1,
+  "initial_cop_density": 0.04, "initial_agent_density": 0.7,
+  "vision": 7.0}
